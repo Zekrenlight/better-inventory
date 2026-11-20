@@ -6,6 +6,13 @@ Version 1.0.0 · Minecraft Java 26.3 · Sunrise API 0.2 · Mod SDK `9425651` · 
 Settings: Options > Mods... > Better Inventory > Settings. The sort key is in Options > Controls.
 Every part has its own switch.
 
+<img width="555" height="158" alt="image" src="https://github.com/user-attachments/assets/db00729c-81ed-49a5-be1f-7b4748fee573" />
+<img width="921" height="982" alt="image" src="https://github.com/user-attachments/assets/0fbfb70e-9641-4f23-8a50-8550681cc249" />
+<img width="921" height="982" alt="image" src="https://github.com/user-attachments/assets/4db3cbe1-6c9f-4a2c-8e70-4b8f3b30a6ca" />
+<img width="921" height="982" alt="image" src="https://github.com/user-attachments/assets/2f7b3d7e-1eb1-4800-9887-6b705b72d321" />
+<img width="921" height="982" alt="image" src="https://github.com/user-attachments/assets/284b4ca8-5563-4f48-acaf-3a6719f70da0" />
+
+
 ## Sorting
 - A small sort button by your inventory, and by chests, barrels and shulker boxes (Sort Buttons).
 - The sort key (R at first) sorts the part under the cursor: your inventory, or the container.
