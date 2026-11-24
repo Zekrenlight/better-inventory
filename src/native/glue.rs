@@ -122,7 +122,10 @@ pub(super) fn key(game: &mut Game<'_>, key: KeyCode) -> bool {
     let Some(name) = sunrise_client::keybinds::key_name(key) else {
         return false;
     };
-    let Some((bound, _)) = game.mod_key(bi::ID, bi::SORT_KEY) else {
+    let Ok(mapping) = game.mod_key_mapping(bi::ID, bi::SORT_KEY) else {
+        return false;
+    };
+    let Ok((bound, _)) = game.mod_key_mapping_binding(mapping) else {
         return false;
     };
     if bound != name {
@@ -148,7 +151,7 @@ pub(super) fn key(game: &mut Game<'_>, key: KeyCode) -> bool {
 fn kind_ranks(game: &Game<'_>, kinds: &[ItemStack], totals: &[u32]) -> Vec<u64> {
     let names: Vec<String> = kinds
         .iter()
-        .map(|s| sunrise_client::stations::hover_name(&game.pack.names, s).to_lowercase())
+        .map(|s| game.stack_hover_name(s).to_lowercase())
         .collect();
     let groups: Vec<usize> = kinds
         .iter()
@@ -567,7 +570,7 @@ fn draw_pickups(game: &Game<'_>, batch: &mut HudBatch) {
         let row = bi::pickups::ROW;
         let y = if up { ay - (i as f32 + 1.0) * row } else { ay + i as f32 * row };
         let (icon, name, color) = match pick {
-            Pick::Item(s) => (s.clone(), sunrise_client::stations::hover_name(&game.pack.names, s), rgba(255, 255, 255, 255)),
+            Pick::Item(s) => (s.clone(), game.stack_hover_name(s), rgba(255, 255, 255, 255)),
             Pick::Xp => (
                 ItemStack::new("minecraft:experience_bottle", 1),
                 sunrise_client::lang::get_or("better_inventory.pickup.experience", "Experience"),
@@ -625,12 +628,6 @@ pub(super) fn layer_pre(game: &Game<'_>, layer: &str, batch: &mut HudBatch, canc
     }
     let (w, h) = (batch.width as i32, batch.height as i32);
     let partial = game.clock.fraction() as f32;
-    let indicator = if game.pvp_hides_attack_indicator() {
-        0
-    } else {
-        game.settings.attack_indicator
-    };
-    let strength = game.hand_strength.scale(0.0, game.main_hand_attack_speed());
     let selected = game.selected.min(8);
     let inputs = hud_layout::HotbarInputs {
         selected: selected as i32,
@@ -642,7 +639,6 @@ pub(super) fn layer_pre(game: &Game<'_>, layer: &str, batch: &mut HudBatch, canc
                 .map(|_| (f32::from(game.hotbar_pop[i]) - partial).max(0.0))
         }),
         offhand_pop: (f32::from(game.hotbar_pop[9]) - partial).max(0.0),
-        attack: (indicator == 2).then_some(strength),
     };
     let draws = hud_layout::hotbar(w, h, &inputs);
     let looks: [Option<bi::motion::SlotLook>; 10] = std::array::from_fn(|i| {
@@ -734,7 +730,7 @@ pub(super) fn layer_pre(game: &Game<'_>, layer: &str, batch: &mut HudBatch, canc
         }
     }
     let atlas = &game.gui.atlas;
-    let mut items = crate::game::gui_paint_items::HotbarItems { game };
+    let mut items = crate::game::gui_paint_items::HotbarItems { game, source: crate::game::gui_paint_items::HotbarSource::Own };
     hud_layout::paint_items(batch, atlas, &before, &mut items);
     let start = batch.vertices.len();
     hud_layout::paint(batch, atlas, &frames);
