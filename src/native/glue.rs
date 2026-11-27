@@ -147,6 +147,16 @@ pub(super) fn key(game: &mut Game<'_>, key: KeyCode) -> bool {
     true
 }
 
+/// The stack's place in the creative search tab, as `CreativeOrder::of` ranks it:
+/// the exact stack's merge kind first, else the item's first listing.
+fn creative_place(list: &[sunrise_client::items::ItemStack], s: &sunrise_client::items::ItemStack) -> usize {
+    let kind = s.merge_kind();
+    list.iter()
+        .position(|c| c.merge_kind() == kind)
+        .or_else(|| list.iter().position(|c| c.item == s.item))
+        .unwrap_or(usize::MAX)
+}
+
 /// The order of the different stacks in `kinds` for the chosen sort order: each kind's place.
 fn kind_ranks(game: &Game<'_>, kinds: &[ItemStack], totals: &[u32]) -> Vec<u64> {
     let names: Vec<String> = kinds
@@ -155,7 +165,7 @@ fn kind_ranks(game: &Game<'_>, kinds: &[ItemStack], totals: &[u32]) -> Vec<u64> 
         .collect();
     let groups: Vec<usize> = kinds
         .iter()
-        .map(|s| sunrise_client::creative::Creative::order_of(game.creative_screen.search_items(), s).unwrap_or(usize::MAX))
+        .map(|s| creative_place(game.creative_screen.search_items(), s))
         .collect();
     let mut order: Vec<usize> = (0..kinds.len()).collect();
     let by_group = |a: usize, b: usize| {
@@ -409,7 +419,7 @@ pub(super) fn layer_post(game: &Game<'_>, layer: &str, batch: &mut HudBatch) {
     let (w, h) = (batch.width as i32, batch.height as i32);
     for ((piece, stack, wear), label) in shown.iter().zip(&labels) {
         let place = bi::hud::place(*piece, cfg.hud_sides, w, h, label_w);
-        game.draw_item_model(batch, stack, place.icon.0 as f32, place.icon.1 as f32);
+        game.draw_item_model(batch, stack, place.icon.0 as f32, place.icon.1 as f32, 0);
         let Some((damage, max)) = *wear else {
             continue;
         };
@@ -589,7 +599,7 @@ fn draw_pickups(game: &Game<'_>, batch: &mut HudBatch) {
         };
         let start = batch.vertices.len();
         let icon_x = if right { ax - 16.0 } else { ax };
-        game.draw_item_model(batch, &icon, icon_x, y + 1.0);
+        game.draw_item_model(batch, &icon, icon_x, y + 1.0, 0);
         if !text.is_empty() {
             let tw = HudBatch::text_width(atlas, &text);
             let tx = if right { icon_x - 3.0 - tw } else { icon_x + 16.0 + 3.0 };
@@ -730,7 +740,7 @@ pub(super) fn layer_pre(game: &Game<'_>, layer: &str, batch: &mut HudBatch, canc
         }
     }
     let atlas = &game.gui.atlas;
-    let mut items = crate::game::gui_paint_items::HotbarItems { game, source: crate::game::gui_paint_items::HotbarSource::Own };
+    let mut items = OwnHotbarItems { game };
     hud_layout::paint_items(batch, atlas, &before, &mut items);
     let start = batch.vertices.len();
     hud_layout::paint(batch, atlas, &frames);
@@ -741,4 +751,36 @@ pub(super) fn layer_pre(game: &Game<'_>, layer: &str, batch: &mut HudBatch, canc
     }
     hud_layout::paint_items(batch, atlas, &after, &mut items);
     *canceled = true;
+}
+
+
+/// The local player's hotbar and off-hand slots, for `paint_items` after the game
+/// moved `HotbarItems` into a private module.
+struct OwnHotbarItems<'a, 'g> {
+    game: &'a Game<'g>,
+}
+
+impl OwnHotbarItems<'_, '_> {
+    fn stack(&self, slot: u32) -> Option<&sunrise_client::items::ItemStack> {
+        match slot {
+            40 => self.game.offhand.as_ref(),
+            0..=8 => self.game.inventory.get(slot as usize)?.as_ref(),
+            _ => None,
+        }
+    }
+}
+
+impl sunrise_client::hud_layout::GuiItems for OwnHotbarItems<'_, '_> {
+    fn item(&mut self, batch: &mut HudBatch, slot: u32, x: i32, y: i32, seed: i32) {
+        if let Some(stack) = self.stack(slot) {
+            self.game
+                .draw_item_model(batch, stack, x as f32, y as f32, seed);
+        }
+    }
+    fn decorations(&mut self, batch: &mut HudBatch, slot: u32, x: i32, y: i32) {
+        if let Some(stack) = self.stack(slot) {
+            self.game
+                .draw_item_decorations(batch, stack, x as f32, y as f32, None);
+        }
+    }
 }
