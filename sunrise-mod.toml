@@ -1,6 +1,6 @@
 id = "better_inventory"
 name = "Better Inventory"
-version = "1.0.2"
+version = "1.0.3"
 description = "Sort buttons and a sort key, quiet hotbar auto-refill, armour and held items with their wear beside the hotbar, and a hotbar that glides and lifts the held item, and a list of what you pick up in a corner of the screen. Every part has its own switch."
 authors = ["Zekrenlight"]
 license = "MIT"
